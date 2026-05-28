@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Waterproof Wall - 开源滑块验证码平台 | 多租户 HMAC 签名验票</title>
+    <meta name="description" content="Waterproof Wall 是一个开源滑块验证码平台，支持多租户隔离、HMAC-SHA256 签名验票、行为分析防机器人、一行代码接入。适用于登录保护、注册防刷、活动防薅等场景。" />
+    <meta name="keywords" content="滑块验证码,滑块验证,验证码平台,人机验证,Captcha,Slider Captcha,HMAC验票,防机器人,多租户验证码,开源验证码" />
+    <meta name="author" content="Waterproof Wall" />
+    <link rel="canonical" href="{{DOMAIN}}/" />
+
+    <meta property="og:title" content="Waterproof Wall - 开源滑块验证码平台" />
+    <meta property="og:description" content="多租户架构，HMAC 签名验票，一行代码接入。适用于登录保护、注册防刷、活动防薅等场景。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{DOMAIN}}/" />
+    <meta property="og:site_name" content="Waterproof Wall" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Waterproof Wall",
+      "description": "开源滑块验证码平台，支持多租户隔离、HMAC-SHA256 签名验票、行为分析防机器人、一行代码接入",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Web",
+      "url": "{{DOMAIN}}",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CNY"
+      },
+      "featureList": [
+        "滑块验证码",
+        "多租户隔离（appId/appKey/appSecret）",
+        "HMAC-SHA256 签名验票",
+        "行为轨迹分析防机器人",
+        "App Secret 加密存储",
+        "按日用量统计"
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Waterproof Wall",
+      "url": "{{DOMAIN}}/",
+      "description": "开源滑块验证码平台，多租户架构，HMAC 签名验票，一行代码接入"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "什么是滑块验证码？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "滑块验证码是一种人机验证方式，用户通过拖动滑块完成拼图来证明自己是真人，而非自动化脚本。相比传统字符验证码，滑块验证码用户体验更好、安全性更高。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Waterproof Wall 的 HMAC 签名验票是什么？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "HMAC 签名验票是指后端在验证 ticket 时，前端需使用 App Secret 对请求进行 HMAC-SHA256 签名，服务端校验签名后才能通过。这确保了 ticket 无法被伪造或重放。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "如何接入 Waterproof Wall 验证码？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "只需两步：1. 前端引入 SDK（一行 script 标签），调用 SliderCaptcha 的 verify 方法获取 ticket；2. 后端使用 App Key 和 App Secret 对请求进行 HMAC-SHA256 签名，调用验票接口验证 ticket 有效性。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Waterproof Wall 支持多租户吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "支持。每个应用独立分配 appId、appKey 和 appSecret，数据完全隔离，互不影响。可在同一平台上为不同业务创建多个应用。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "滑块验证码能防止哪些攻击？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Waterproof Wall 滑块验证码可防止：自动化脚本批量注册、暴力破解登录、恶意抢购薅羊毛、爬虫恶意抓取等。同时通过行为轨迹分析（滑动速度、加速度）精准区分人机。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Waterproof Wall 是开源的吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "是的，Waterproof Wall 是开源滑块验证码平台。前端使用 Vue 3 + Vite，后端使用 Go，支持自部署。"
+          }
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

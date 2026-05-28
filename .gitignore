@@ -1,0 +1,16 @@
+.workflow
+src/.env
+src/.vscode
+.env
+config.yml
+captcha-api
+captcha-web
+server.log
+api.log
+web.log
+*.exe
+cmd/all.zip
+cmd/web/*
+cmd/app
+deploy.sh
+.DS_Store

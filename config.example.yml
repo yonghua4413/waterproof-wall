@@ -1,0 +1,50 @@
+# Waterproof Wall 滑动验证码平台配置
+# 复制为 config.yml 并根据实际情况修改
+
+# HTTP 监听地址
+addr: ":8088"
+
+# HMAC 签名密钥，生产环境必须替换为 >=32 字节的随机密钥
+# 建议通过环境变量 CAPTCHA_SECRET 传入，避免明文写入配置文件
+secret: "dev-secret-change-me-at-least-32-bytes"
+
+# 挑战/票据存储：memory 或 redis（多实例部署用 redis）
+store: "memory"
+
+# 平台存储：memory 或 mysql
+platform_store: "mysql"
+
+# MySQL 数据库配置
+db:
+  addr: "127.0.0.1:3306"
+  user: "root"
+  # 建议通过环境变量 CAPTCHA_DB_PASSWORD 传入
+  password: ""
+  name: "waterproof_wall"
+
+# Redis 配置（store: redis 时生效）
+redis:
+  addr: "127.0.0.1:6379"
+  # 建议通过环境变量 CAPTCHA_REDIS_PASSWORD 传入
+  password: ""
+  db: 0
+
+# CORS 允许来源，* 表示全部允许
+allowed_origins:
+  - "*"
+
+# 限流配置（每 IP + 应用 + 场景，每分钟窗口）
+limits:
+  challenge: 60
+  verify: 120
+
+# TTL 配置
+ttl:
+  challenge: "2m"
+  ticket: "3m"
+
+# 验证码图片参数
+image:
+  width: 320
+  height: 160
+  piece: 58
