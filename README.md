@@ -135,27 +135,20 @@ npm run build    # 输出到 ../cmd/web/
 
 ## 接入流程
 
-```
-浏览器                 验证码服务              业务后端
-  │  POST /challenge       │                     │
-  │  (appId)               │                     │
-  │ ──────────────────────►│                     │
-  │  背景图 + 滑块图       │                     │
-  │ ◄──────────────────────│                     │
-  │  POST /verify          │                     │
-  │  (appId + 轨迹数据)    │                     │
-  │ ──────────────────────►│                     │
-  │  ticket                │                     │
-  │ ◄──────────────────────│                     │
-  │  提交表单 + ticket     │                     │
-  │ ────────────────────────────────────────────►│
-  │                        │  POST /ticket/check  │
-  │                        │  (HMAC 签名)         │
-  │                        │ ◄────────────────────│
-  │                        │  验票结果            │
-  │                        │ ────────────────────►│
-  │  业务结果              │                     │
-  │ ◄────────────────────────────────────────────│
+```mermaid
+sequenceDiagram
+    participant Browser as 用户浏览器
+    participant Captcha as 验证码服务
+    participant Biz as 业务后端
+
+    Browser->>Captcha: POST /challenge {appId}
+    Captcha-->>Browser: 背景图、滑块图、captchaId
+    Browser->>Captcha: POST /verify {appId, captchaId, track}
+    Captcha-->>Browser: 一次性 ticket
+    Browser->>Biz: 提交业务表单 + ticket
+    Biz->>Captcha: POST /ticket/check (appKey + HMAC签名)
+    Captcha-->>Biz: success=true
+    Biz-->>Browser: 执行业务动作结果
 ```
 
 ### 前端接入
@@ -268,4 +261,4 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## 许可
 
-自托管使用，保留所有权利。
+本项目基于 [MIT](LICENSE) 协议开源，保留署名权，不得移除或修改原作者署名。
