@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-const repoUrl = 'https://gitee.com/waterproof-wall/waterproof-wall'
+const repoUrl = 'https://gitee.com/yonghua4413/waterproof-wall'
 </script>
 
 <style scoped>

@@ -4,42 +4,73 @@
 
 ## 特性
 
-- **多租户隔离** — 每个应用独立 appId / appKey / appSecret
+- **多租户隔离** — 每个应用独立 `appId` / `appKey` / `appSecret`
 - **HMAC-SHA256 签名验票** — 防伪造、防重放
-- **App Secret 加密存储** — 仅创建/重置时明文返回一次
-- **行为轨迹分析** — 滑动速度、加速度区分人机
-- **用量统计** — 按日统计请求数、通过率、验票数
-- **Vue 3 + Vite 前端** — 单页应用，nginx 静态部署
+- **App Secret 加密存储** — AES-GCM 加密，仅创建/重置时明文返回一次
+- **行为轨迹分析** — 滑动速度、加速度、Y 轴偏移、步长分布等多维度区分人机
+- **纯 Go 生成图片** — 不依赖外部字体，渐变背景 + 随机噪点
+- **IP 限流** — 按 IP + 应用 + 场景滑动窗口限流
+- **用量统计** — 按日统计挑战/验证/通过/失败/验票数
+- **多实例部署** — 支持 Redis 共享票据存储
+- **Vue 3 + Vite 前端** — SPA 控制台，暗色主题
 
 ## 项目结构
 
 ```
 .
-├── cmd/api/          # API 服务（Go），监听 :8088
-├── cmd/web/          # 前端构建输出（npm run build 生成）
-├── src/              # 前端源码（Vue 3 + Vite）
-│   ├── src/          # Vue 组件、页面、composables
-│   ├── public/sdk/   # SDK 源文件（captcha.src.js）
-│   └── .env          # VITE_APP_DOMAIN 配置
-├── internal/         # Go 后端代码
-├── deploy/           # 部署配置
-│   ├── nginx.conf    # Nginx 反向代理配置
-│   └── 007.service   # systemd 服务文件
-├── config.example.yml
-└── go.mod
+├── cmd/
+│   ├── api/main.go       # API 服务入口（Go），监听 :8088
+│   └── web/              # 前端构建输出（npm run build 生成）
+├── src/                  # 前端源码（Vue 3 + Vite）
+│   ├── src/
+│   │   ├── views/        # 页面：Home / Dashboard / Example / Docs / Source
+│   │   ├── components/   # 组件：AuthModal / CreateAppModal / SecretModal ...
+│   │   ├── composables/  # useApi / useAuth / useToast
+│   │   ├── router.js     # Vue Router（/dashboard 需要登录）
+│   │   └── style.css     # 暗色主题全局样式
+│   ├── public/sdk/       # JS SDK 源文件（captcha.js / captcha.src.js）
+│   └── .env.example      # 环境变量示例
+├── internal/             # Go 后端代码
+│   ├── captcha/          # 验证码图片生成 + 行为分析
+│   ├── config/           # 配置加载（YAML + 环境变量覆盖）
+│   ├── http/             # HTTP 路由 + 处理器 + CORS + 限流
+│   ├── model/            # 数据模型
+│   ├── platform/         # 用户/应用管理 + AES-GCM 加密 + MySQL/内存存储
+│   ├── secure/           # crypto/rand 安全随机数
+│   ├── store/            # 挑战/票据存储（Redis / 内存）
+│   └── ticket/           # 票据签发与校验（HMAC-SHA256）
+├── deploy/               # 部署配置
+│   ├── nginx.conf        # Nginx 反向代理（/api/ → :8088）
+│   └── 007.service       # systemd 服务文件
+├── docs/
+│   └── API_AND_JSSDK.md  # API + SDK 完整接入文档
+├── config.example.yml    # 配置文件模板
+├── deploy.sh             # 构建 + 上传腾讯云 COS
+├── go.mod
+└── go.sum
 ```
 
-## 快速启动
+## 快速开始
 
 ### 1. 配置
 
 ```bash
 cp config.example.yml config.yml
-# 编辑 config.yml，设置 secret、db.password 等
-# 敏感参数建议通过环境变量覆盖：
-export CAPTCHA_SECRET="your-32-byte-random-secret-here"
-export CAPTCHA_DB_PASSWORD="your-db-password"
+# 编辑 config.yml，修改 secret、db.password 等
 ```
+
+敏感参数支持 `CAPTCHA_` 前缀环境变量覆盖：
+
+| 环境变量 | 默认值 / 说明 |
+|---------|-------------|
+| `CAPTCHA_SECRET` | HMAC 签名密钥（生产必须替换，≥32 字节） |
+| `CAPTCHA_ADDR` | 监听地址，默认 `:8088` |
+| `CAPTCHA_STORE` | `memory` 或 `redis` |
+| `CAPTCHA_PLATFORM_STORE` | `memory` 或 `mysql` |
+| `CAPTCHA_DB_PASSWORD` | MySQL 密码 |
+| `CAPTCHA_REDIS_ADDR` | Redis 地址 |
+
+全部配置项见 `config.example.yml`。
 
 ### 2. 启动 API
 
@@ -47,82 +78,84 @@ export CAPTCHA_DB_PASSWORD="your-db-password"
 go run ./cmd/api/ -c config.yml
 ```
 
-API 默认监听 `:8088`。
+API 默认监听 `:8088`，启动日志：`captcha api listening on :8088 (store=memory platform=mysql)`
 
 ### 3. 前端开发
 
 ```bash
 cd src
 npm install
-npm run dev      # 开发模式，访问 http://localhost:5173
+npm run dev      # 访问 http://localhost:5173，API 自动代理到 :8088
 ```
 
 ### 4. 前端构建
 
 ```bash
 cd src
-npm run build    # 输出到 cmd/web/
+npm run build    # 输出到 ../cmd/web/
 ```
 
-修改域名：编辑 `src/.env` 中的 `VITE_APP_DOMAIN`，然后重新 build。
+构建时通过 `VITE_APP_DOMAIN` 替换域名占位符：
 
-### 5. 生产部署
+| 环境变量 | 默认值 |
+|---------|-------|
+| `VITE_APP_DOMAIN` | `https://007.hallo.run` |
+| `VITE_APP_API_BASE` | `https://007.hallo.run` |
 
-#### 交叉编译（Linux/CentOS）
+开发环境（`.env.develop`）：`VITE_APP_DOMAIN=http://127.0.0.1:5173`，`VITE_APP_API_BASE` 为空（走 Vite 代理）。
 
-```bash
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o captcha-api ./cmd/api/
-```
+## HTTP API
 
-#### 部署文件
+### 平台管理（Bearer Token 认证）
 
-| 文件 | 目标位置 |
-| --- | --- |
-| `captcha-api` | `/opt/007/captcha-api` |
-| `cmd/web/` | `/opt/007/web/` |
-| `config.yml` | `/opt/007/config.yml` |
-| `deploy/nginx.conf` | `/etc/nginx/conf.d/007.hallo.run.conf` |
-| `deploy/007.service` | `/etc/systemd/system/007.service` |
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/v1/users/register` | 用户注册（无需认证） |
+| `POST` | `/api/v1/users/login` | 用户登录（无需认证） |
+| `GET` | `/api/v1/users/me` | 获取当前用户 |
+| `GET` | `/api/v1/apps` | 列出应用 |
+| `POST` | `/api/v1/apps` | 创建应用 |
+| `POST` | `/api/v1/apps/rotate-secret` | 重置 App Secret |
+| `POST` | `/api/v1/apps/update-domains` | 更新域名白名单 |
+| `GET` | `/api/v1/apps/usage?date=&appId=` | 用量统计 |
 
-```bash
-sudo systemctl enable 007
-sudo systemctl start 007
-sudo nginx -t && sudo systemctl reload nginx
-```
+### 验证码
 
-## 域名配置
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| `POST` | `/api/v1/challenge` | 生成挑战（返回背景图 + 滑块图） | appId |
+| `POST` | `/api/v1/verify` | 提交验证（轨迹分析 + 签发票据） | appId |
+| `POST` | `/api/v1/ticket/check` | 后端校验票据 | appKey + HMAC 签名 |
 
-前端域名为 `VITE_APP_DOMAIN`（默认 `007.hallo.run`）：
+### 健康检查
 
-- **首页** `https://007.hallo.run/` — 介绍 + 控制台
-- **示例** `https://007.hallo.run/example` — SDK 演示
-- **SDK** `https://007.hallo.run/sdk/captcha.js` — 压缩版
-- **API** `https://007.hallo.run/api/` — 反向代理到 `:8088`
-
-Nginx 配置：`/api/` 转发到后端，其余 `try_files` 回退 `index.html`。
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/healthz` | 返回 `{"status":"ok"}` |
 
 ## 接入流程
 
 ```
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│  浏览器    │     │ 验证码服务 │     │ 业务后端  │
-└────┬─────┘     └────┬─────┘     └────┬─────┘
-     │  POST /challenge (appId)  │          │
-     │───────────────────────►│          │
-     │  背景图 + 滑块图       │          │
-     │◄───────────────────────│          │
-     │  POST /verify (appId, track)     │
-     │───────────────────────►│          │
-     │  ticket               │          │
-     │◄───────────────────────│          │
-     │  提交表单 + ticket     │          │
-     │─────────────────────────────────►│
-     │                       │  POST /ticket/check (appKey + HMAC签名)
-     │                       │◄─────────│
-     │                       │  验票结果  │
-     │                       │──────────►│
-     │  业务结果              │          │
-     │◄──────────────────────────────────│
+浏览器                 验证码服务              业务后端
+  │  POST /challenge       │                     │
+  │  (appId)               │                     │
+  │ ──────────────────────►│                     │
+  │  背景图 + 滑块图       │                     │
+  │ ◄──────────────────────│                     │
+  │  POST /verify          │                     │
+  │  (appId + 轨迹数据)    │                     │
+  │ ──────────────────────►│                     │
+  │  ticket                │                     │
+  │ ◄──────────────────────│                     │
+  │  提交表单 + ticket     │                     │
+  │ ────────────────────────────────────────────►│
+  │                        │  POST /ticket/check  │
+  │                        │  (HMAC 签名)         │
+  │                        │ ◄────────────────────│
+  │                        │  验票结果            │
+  │                        │ ────────────────────►│
+  │  业务结果              │                     │
+  │ ◄────────────────────────────────────────────│
 ```
 
 ### 前端接入
@@ -143,79 +176,96 @@ captcha.verify().then(result => {
 ### 后端验票（Go）
 
 ```go
-signingInput := "POST\n/api/v1/ticket/check\n" + timestamp + "\n" + nonce + "\n" + body
-mac := hmac.New(sha256.New, []byte(appSecret))
-mac.Write([]byte(signingInput))
-signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/base64"
+)
 
-// 请求头：
+func sign(appSecret, method, path, timestamp, nonce, body string) string {
+    input := method + "\n" + path + "\n" + timestamp + "\n" + nonce + "\n" + body
+    mac := hmac.New(sha256.New, []byte(appSecret))
+    mac.Write([]byte(input))
+    return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// 请求头:
 // X-Captcha-App-Key: {appKey}
-// X-Captcha-Timestamp: {timestamp}
-// X-Captcha-Nonce: {nonce}
+// X-Captcha-Timestamp: {current_ts}
+// X-Captcha-Nonce: {random_nonce}
 // X-Captcha-Signature: {signature}
 ```
+
+签名字符串格式：`{METHOD}\n{path}\n{timestamp}\n{nonce}\n{body}`
 
 ### 后端验票（Node.js）
 
 ```js
-const signingInput = ["POST", "/api/v1/ticket/check", ts, nonce, body].join("\n");
-const signature = createHmac("sha256", appSecret).update(signingInput).digest("base64url");
+const crypto = require('crypto');
 
-// 请求头同上
+function sign(appSecret, method, path, ts, nonce, body) {
+  const input = [method, path, ts, nonce, body].join('\n');
+  return crypto.createHmac('sha256', appSecret).update(input).digest('base64url');
+}
 ```
-
-## HTTP API
-
-### 平台管理
-
-| 方法 | 路径 | 说明 | 认证 |
-| --- | --- | --- | --- |
-| POST | `/api/v1/users/register` | 用户注册 | 无 |
-| POST | `/api/v1/users/login` | 用户登录 | 无 |
-| POST | `/api/v1/apps` | 创建应用 | Bearer Token |
-| GET | `/api/v1/apps` | 列出应用 | Bearer Token |
-| POST | `/api/v1/apps/rotate-secret` | 重置 Secret | Bearer Token |
-| POST | `/api/v1/apps/update-domains` | 更新域名 | Bearer Token |
-| GET | `/api/v1/apps/usage?date=` | 调用统计 | Bearer Token |
-
-### 验证码
-
-| 方法 | 路径 | 说明 | 认证 |
-| --- | --- | --- | --- |
-| POST | `/api/v1/challenge` | 生成挑战 | appId |
-| POST | `/api/v1/verify` | 提交验证 | appId |
-| POST | `/api/v1/ticket/check` | 校验票据 | appKey + HMAC |
-
-## 配置
-
-通过 `config.yml` 加载，敏感参数支持 `CAPTCHA_` 前缀环境变量覆盖：
-
-| 环境变量 | 说明 |
-| --- | --- |
-| `CAPTCHA_SECRET` | HMAC 签名密钥（生产必须替换） |
-| `CAPTCHA_ADDR` | 监听地址，默认 `:8088` |
-| `CAPTCHA_DB_PASSWORD` | MySQL 密码 |
-| `CAPTCHA_PLATFORM_STORE` | `mysql` 或 `memory` |
-
-详见 [config.example.yml](config.example.yml)。
 
 ## 数据库
 
-MySQL 自动建表：
+MySQL 自动建表（`platform_store: mysql` 时），共 3 张表：
 
 | 表 | 说明 |
-| --- | --- |
-| `users` | 注册用户 |
-| `apps` | 应用（appId / appKey / secret_cipher / domains） |
-| `captcha_events` | 验证事件日志 |
+|----|------|
+| `users` | 注册用户（邮箱 + 密码哈希） |
+| `apps` | 应用（appKey / secret_cipher / domains） |
+| `captcha_events` | 验证事件日志（聚合用量统计） |
 
-appSecret 使用 AES-GCM 加密存储。
+appSecret 使用 AES-GCM 加密存储，加密密钥由 `secret` 配置衍生。
+
+## 生产部署
+
+### 交叉编译（Linux amd64）
+
+```bash
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o captcha-api ./cmd/api/
+```
+
+### 部署文件
+
+| 文件 | 目标路径 | 说明 |
+|------|---------|------|
+| `captcha-api` | `/opt/007/captcha-api` | API 二进制 |
+| `cmd/web/` | `/opt/007/web/` | 前端静态文件 |
+| `config.yml` | `/opt/007/config.yml` | 配置文件 |
+| `deploy/nginx.conf` | `/etc/nginx/conf.d/007.hallo.run.conf` | Nginx 配置 |
+| `deploy/007.service` | `/etc/systemd/system/007.service` | systemd 服务 |
+
+### 启动服务
+
+```bash
+sudo systemctl enable 007
+sudo systemctl start 007
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Nginx 路由
+
+- `/api/` → 反向代理 `127.0.0.1:8088`
+- 其他路径 → SPA 静态文件（`try_files` 回退 `index.html`）
+- SDK：`/sdk/captcha.js`
+
+### 多实例部署
+
+设置 `store: redis`，多个 API 实例共享 Redis 中的挑战/票据数据，实现水平扩展。
 
 ## 安全建议
 
 - `config.yml` 不入版本库（已在 `.gitignore`）
-- 生产必须替换 `secret`，32 字节以上随机密钥
-- appSecret 只保管在业务后端，绝不泄露到前端
-- `/api/v1/ticket/check` 建议在网关层限制只允许业务后端 IP 访问
-- 多实例部署使用 `CAPTCHA_STORE=redis`
-- 票据校验成功后立即执行业务，不要缓存结果
+- 生产环境**必须替换** `secret` 为 ≥32 字节随机密钥
+- `appSecret` 只保管在业务后端，**绝不泄露到前端**
+- `/api/v1/ticket/check` 建议网关层限制仅允许业务后端 IP 访问
+- 票据校验成功后**立即执行业务**，不要缓存验票结果
+- 多实例部署使用 `store: redis` 共享票据存储
+
+## 许可
+
+自托管使用，保留所有权利。
