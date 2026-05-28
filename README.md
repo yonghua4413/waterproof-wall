@@ -2,6 +2,8 @@
 
 自托管多租户滑动验证码平台，HMAC 签名验票，一行代码接入。
 
+[Gitee](https://gitee.com/yonghua4413/waterproof-wall) · [GitHub](https://github.com/yonghua4413/waterproof-wall)
+
 ## 特性
 
 - **多租户隔离** — 每个应用独立 `appId` / `appKey` / `appSecret`

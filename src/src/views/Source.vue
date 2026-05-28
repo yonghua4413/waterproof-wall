@@ -3,15 +3,20 @@
     <div class="card">
       <a class="back" href="/">&larr; 返回首页</a>
       <h2>源码</h2>
-      <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Waterproof Wall 源代码托管在 Gitee</p>
-      <a class="btn" :href="repoUrl" target="_blank">访问 Gitee 仓库 &rarr;</a>
-      <div class="url">{{ repoUrl }}</div>
+      <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Waterproof Wall 源代码托管在以下仓库</p>
+      <div class="repo-list">
+        <a class="btn" :href="giteeUrl" target="_blank">Gitee &rarr;</a>
+        <a class="btn" :href="githubUrl" target="_blank">GitHub &rarr;</a>
+      </div>
+      <div class="url">{{ giteeUrl }}</div>
+      <div class="url">{{ githubUrl }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
-const repoUrl = 'https://gitee.com/yonghua4413/waterproof-wall'
+const giteeUrl = 'https://gitee.com/yonghua4413/waterproof-wall'
+const githubUrl = 'https://github.com/yonghua4413/waterproof-wall'
 </script>
 
 <style scoped>
@@ -19,5 +24,6 @@ const repoUrl = 'https://gitee.com/yonghua4413/waterproof-wall'
 .card h2 { font-size: 18px; margin-bottom: 8px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 20px; border: 0; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--primary); color: #fff; text-decoration: none; }
 .url { margin-top: 12px; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text2); word-break: break-all; }
+.repo-list { display: flex; gap: 12px; justify-content: center; margin-bottom: 12px; }
 .back { display: inline-block; margin-bottom: 16px; color: var(--primary); font-size: 14px; }
 </style>
