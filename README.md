@@ -261,6 +261,15 @@ sudo nginx -t && sudo systemctl reload nginx
 - 票据校验成功后**立即执行业务**，不要缓存验票结果
 - 多实例部署使用 `store: redis` 共享票据存储
 
+## 打赏
+
+如果这个项目对你有帮助，欢迎请作者喝杯咖啡 ☕️ 金额随意，心意到了就行～
+
+<div align="center">
+  <img src="https://007.hallo.run/wx.jpg" alt="微信赞赏" width="220" />
+  <img src="https://007.hallo.run/zfb.jpg" alt="支付宝赞赏" width="220" />
+</div>
+
 ## 许可
 
 本项目基于 [MIT](LICENSE) 协议开源，保留署名权，不得移除或修改原作者署名。

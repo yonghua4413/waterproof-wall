@@ -42,6 +42,8 @@ func NewRouter(cfg config.Config, st store.Store, platformStore ...platform.Stor
 	mux.HandleFunc("POST /api/v1/verify", s.verify)
 	mux.HandleFunc("POST /api/v1/ticket/check", s.checkTicket)
 	mux.HandleFunc("GET /api/v1/apps/usage", s.appUsage)
+	mux.HandleFunc("GET /api/demo/config", s.demoConfig)
+	mux.HandleFunc("POST /api/demo/verify-captcha", s.demoVerifyCaptcha)
 
 	return s.cors(s.recover(mux))
 }
@@ -587,6 +589,74 @@ func (s *Server) appUsage(w http.ResponseWriter, r *http.Request) {
 		out = append(out, appUsage{App: app, Daily: usage})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "date": date, "apps": out})
+}
+
+const demoAppID = "app_Ovx-y8QZNRKZK5cSbOTo1mP6A4Gp5BNi"
+
+func (s *Server) demoConfig(w http.ResponseWriter, r *http.Request) {
+	endpoint := ""
+	writeJSON(w, http.StatusOK, map[string]any{
+		"appId":    demoAppID,
+		"endpoint": endpoint,
+	})
+}
+
+func (s *Server) demoVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
+	body, ok := readBody(w, r)
+	if !ok {
+		return
+	}
+	var req struct {
+		AppID  string `json:"appId"`
+		Ticket string `json:"ticket"`
+		Scene  string `json:"scene"`
+		BizID  string `json:"bizId"`
+	}
+	if !decodeJSON(w, body, &req) {
+		return
+	}
+	req.Scene = normalize(req.Scene, "default")
+
+	app, ok := s.loadRequestApp(w, r, req.AppID, false)
+	if !ok {
+		return
+	}
+
+	payload, err := ticket.Parse(s.cfg.Secret, req.Ticket)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "invalid_ticket")
+		return
+	}
+	if payload.AppID != app.ID || payload.Scene != req.Scene || payload.BizID != req.BizID {
+		writeError(w, http.StatusUnauthorized, "ticket_context_mismatch")
+		return
+	}
+
+	record, err := s.store.ConsumeTicket(r.Context(), payload.TicketID)
+	if errors.Is(err, store.ErrUsed) {
+		writeError(w, http.StatusUnauthorized, "ticket_used")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "ticket_not_found")
+		return
+	}
+	if record.AppID != payload.AppID || record.CaptchaID != payload.CaptchaID || record.Scene != payload.Scene || record.BizID != payload.BizID {
+		writeError(w, http.StatusUnauthorized, "ticket_record_mismatch")
+		return
+	}
+
+	s.logEvent(r, app.ID, req.Scene, req.BizID, platform.EventTicket, "")
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success":   true,
+		"appId":     payload.AppID,
+		"captchaId": payload.CaptchaID,
+		"scene":     payload.Scene,
+		"bizId":     payload.BizID,
+		"issuedAt":  payload.IssuedAt,
+		"expiresAt": payload.ExpiresAt,
+	})
 }
 
 func (s *Server) logEvent(r *http.Request, appID, scene, bizID string, eventType platform.EventType, reason string) {

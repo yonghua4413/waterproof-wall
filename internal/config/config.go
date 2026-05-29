@@ -169,3 +169,11 @@ func envSliceOr(key string, fallback []string) []string {
 	}
 	return out
 }
+
+func envBoolOr(key string, fallback bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	return v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+}
